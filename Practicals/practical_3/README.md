@@ -312,7 +312,7 @@ This section provides comprehensive visual proof of the successful implementatio
 - The service discovery infrastructure is operational
 
 ### 2. 🐳 Docker Compose System Running
-![Docker Compose Running](assets/docker_compose.png)
+![Docker Compose Running](assets/doc_compose.png)
 
 **Evidence Shows:**
 - ✅ All containers successfully built and started
@@ -575,7 +575,6 @@ This practical successfully demonstrates a production-ready microservices archit
 The implementation successfully addresses all practical requirements while demonstrating modern microservices patterns and cloud-native architecture principles. The system is production-ready and showcases enterprise-level distributed system design.
 
 ---
-**Built with ❤️ using Go, gRPC, PostgreSQL, and Consul**
 
 **Student**: Ranjung Yeshi Norbu  
 **Module**: WEB303 Microservices & Serverless Applications  
