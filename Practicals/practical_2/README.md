@@ -28,8 +28,8 @@ This project demonstrates a **decoupled microservices architecture** with the fo
                        │   (Port 8500)    │
                        └─────────┬────────┘
                                  │
-              ┌──────────────────┼──────────────────┐
-              │                  │                  │
+              ┌──────────────────┼
+              │                  │                  
               ▼                  ▼                  
     ┌─────────────────┐ ┌─────────────────┐ 
     │  Users Service  │ │ Products Service │ 
@@ -193,6 +193,107 @@ Based on development experience, future enhancements would include:
 - **Distributed Tracing**: Better observability across service calls
 - **Configuration Management**: Externalized configuration for different environments
 - **Container Orchestration**: Kubernetes deployment for production scalability
+
+## 📋 Evidence and Documentation
+
+This section provides visual evidence and documentation of the successfully implemented microservices system as required for the practical submission.
+
+### System Architecture Implementation
+
+The following screenshots demonstrate the successful implementation and operation of the microservices architecture:
+
+### 1. Consul UI Dashboard - Service Registration
+
+![Consul UI](assets/consul.png)
+
+**Evidence Shows:**
+- Both `users-service` and `products-service` are successfully registered with Consul
+- Services are showing **healthy status** (green indicators)
+- Health checks are passing with 10-second intervals
+- Service metadata including ports and addresses are correctly displayed
+- Consul UI confirms the service discovery mechanism is operational
+
+### 2. API Gateway Operation
+
+![API Gateway](assets/api_gateway.png)
+
+**Evidence Shows:**
+- API Gateway successfully starting on port 8080
+- Gateway receiving and processing incoming requests
+- Dynamic service discovery working correctly
+- Request routing logs showing successful forwarding to appropriate services
+- Real-time request processing and response handling
+
+### API Testing Evidence
+
+#### Users Service Endpoint Testing
+```bash
+# Request through API Gateway
+curl http://localhost:8080/api/users/123
+
+# Successful Response
+Response from 'users-service': Details for user 123
+```
+
+#### Products Service Endpoint Testing
+```bash
+# Request through API Gateway  
+curl http://localhost:8080/api/products/abc
+
+# Successful Response
+Response from 'products-service': Details for product abc
+```
+
+### Service Health Monitoring
+
+#### Direct Health Check Verification
+```bash
+# Users Service Health Check
+curl http://localhost:8081/health
+# Response: Service is healthy
+
+# Products Service Health Check  
+curl http://localhost:8082/health
+# Response: Service is healthy
+```
+
+
+### Request Flow Documentation
+
+The following demonstrates the complete request flow through the system:
+
+1. **Client Request**: `GET http://localhost:8080/api/users/123`
+2. **Gateway Processing**: 
+   - Receives request on port 8080
+   - Parses URL path to identify target service (`users-service`)
+   - Queries Consul for healthy `users-service` instances
+3. **Service Discovery**: 
+   - Consul returns healthy service instance details
+   - Gateway logs: `Discovered 'users-service' at http://hostname:8081`
+4. **Request Forwarding**:
+   - Gateway creates reverse proxy to target service
+   - Rewrites URL path from `/api/users/123` to `/users/123`
+   - Forwards request to `users-service`
+5. **Response Handling**:
+   - Service processes request and returns response
+   - Gateway forwards response back to client
+   - Client receives: `Response from 'users-service': Details for user 123`
+
+### Performance Metrics
+
+#### Response Times (Measured)
+- **Direct Service Call**: ~2-5ms average response time
+- **Gateway Routing**: ~8-12ms average response time (includes service discovery)
+- **Service Discovery Lookup**: ~1-3ms average lookup time
+
+#### Concurrent Request Handling
+Successfully tested with 10 concurrent requests:
+```bash
+for i in {1..10}; do
+  curl http://localhost:8080/api/users/$i &
+done
+# All requests processed successfully without errors
+```
 
 ## 🚀 Quick Start
 
@@ -443,107 +544,6 @@ export SERVICE_NAME="users-service"
 - **Graceful Shutdown**: Implement proper cleanup on termination
 - **Resource Limits**: Set appropriate memory and CPU limits
 
-
-## 📋 Evidence and Documentation
-
-This section provides visual evidence and documentation of the successfully implemented microservices system as required for the practical submission.
-
-### System Architecture Implementation
-
-The following screenshots demonstrate the successful implementation and operation of the microservices architecture:
-
-### 1. Consul UI Dashboard - Service Registration
-
-![Consul UI](assets/consul.png)
-
-**Evidence Shows:**
-- Both `users-service` and `products-service` are successfully registered with Consul
-- Services are showing **healthy status** (green indicators)
-- Health checks are passing with 10-second intervals
-- Service metadata including ports and addresses are correctly displayed
-- Consul UI confirms the service discovery mechanism is operational
-
-### 2. API Gateway Operation
-
-![API Gateway](assets/api_gateway.png)
-
-**Evidence Shows:**
-- API Gateway successfully starting on port 8080
-- Gateway receiving and processing incoming requests
-- Dynamic service discovery working correctly
-- Request routing logs showing successful forwarding to appropriate services
-- Real-time request processing and response handling
-
-### API Testing Evidence
-
-#### Users Service Endpoint Testing
-```bash
-# Request through API Gateway
-curl http://localhost:8080/api/users/123
-
-# Successful Response
-Response from 'users-service': Details for user 123
-```
-
-#### Products Service Endpoint Testing
-```bash
-# Request through API Gateway  
-curl http://localhost:8080/api/products/abc
-
-# Successful Response
-Response from 'products-service': Details for product abc
-```
-
-### Service Health Monitoring
-
-#### Direct Health Check Verification
-```bash
-# Users Service Health Check
-curl http://localhost:8081/health
-# Response: Service is healthy
-
-# Products Service Health Check  
-curl http://localhost:8082/health
-# Response: Service is healthy
-```
-
-
-### Request Flow Documentation
-
-The following demonstrates the complete request flow through the system:
-
-1. **Client Request**: `GET http://localhost:8080/api/users/123`
-2. **Gateway Processing**: 
-   - Receives request on port 8080
-   - Parses URL path to identify target service (`users-service`)
-   - Queries Consul for healthy `users-service` instances
-3. **Service Discovery**: 
-   - Consul returns healthy service instance details
-   - Gateway logs: `Discovered 'users-service' at http://hostname:8081`
-4. **Request Forwarding**:
-   - Gateway creates reverse proxy to target service
-   - Rewrites URL path from `/api/users/123` to `/users/123`
-   - Forwards request to `users-service`
-5. **Response Handling**:
-   - Service processes request and returns response
-   - Gateway forwards response back to client
-   - Client receives: `Response from 'users-service': Details for user 123`
-
-### Performance Metrics
-
-#### Response Times (Measured)
-- **Direct Service Call**: ~2-5ms average response time
-- **Gateway Routing**: ~8-12ms average response time (includes service discovery)
-- **Service Discovery Lookup**: ~1-3ms average lookup time
-
-#### Concurrent Request Handling
-Successfully tested with 10 concurrent requests:
-```bash
-for i in {1..10}; do
-  curl http://localhost:8080/api/users/$i &
-done
-# All requests processed successfully without errors
-```
 
 ### Security Implementation
 
