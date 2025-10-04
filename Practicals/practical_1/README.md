@@ -238,6 +238,7 @@ The following screenshots show the successful build and deployment of both micro
 
 ### 3. gRPC Service Testing
 ![gRPC Call Response](./assets/message.png)
+
 *Screenshot demonstrating successful gRPC communication between services, showing the greeter service calling the time service and returning a combined response with greeting and current timestamp.*
 
 ## Testing Results
