@@ -1,6 +1,6 @@
-# 🚀 Practical 3: Full-Stack Microservices with gRPC, Databases, and Service Discovery
+# Practical 3: Full-Stack Microservices with gRPC, Databases, and Service Discovery
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Architecture](#architecture)
@@ -11,21 +11,22 @@
 - [Technical Solutions](#technical-solutions)
 - [Testing Results](#testing-results)
 - [Evidence Documentation](#evidence-documentation)
-- [Project Structure](#project-structure)
 - [API Documentation](#api-documentation)
-- [Setup Instructions](#setup-instructions)
-- [Learning Outcomes](#learning-outcomes)
+- [What I Learned](#what-i-learned)
+- [Objectives Achieved](#objectives-achieved)
 - [Conclusion](#conclusion)
 
-## 📖 Overview
+## Overview
 
-This project implements a complete microservices ecosystem demonstrating modern cloud-native architecture patterns. The system consists of two independent microservices (Users and Products) that communicate via gRPC, utilize separate PostgreSQL databases, and register themselves with Consul for dynamic service discovery. An API Gateway serves as the single entry point, translating HTTP requests into gRPC calls and providing data aggregation capabilities.
+This project demonstrates a full-stack microservices architecture that implements modern cloud-native design patterns. The system is built around two independent microservices for managing users and products. These services communicate through gRPC protocol, maintain their own PostgreSQL databases, and register themselves with HashiCorp Consul for dynamic service discovery. An API Gateway acts as the entry point, converting HTTP REST requests into gRPC calls and aggregating data from multiple services.
+
+The main focus of this practical was to fix the API Gateway to properly utilize Consul service discovery instead of relying on hardcoded service addresses, and to implement proper inter-service communication for endpoints that need to aggregate data from multiple sources.
 
 **Repository**: [https://github.com/Rynorbu/AS2025_WEB303_02230297_Practical3](https://github.com/Rynorbu/AS2025_WEB303_02230297_Practical3)
 
-## 🏗️ Architecture
+## Architecture
 
-The system implements a distributed microservices architecture with the following components:
+The system implements a distributed microservices architecture with the following components working together:
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
@@ -46,115 +47,95 @@ The system implements a distributed microservices architecture with the followin
 ```
 
 ### Core Components
+
 | Component | Technology | Port | Purpose |
 |-----------|------------|------|---------|
-| API Gateway | Go + Gorilla Mux | 8080 | HTTP REST API with dynamic service discovery |
-| Users Service | Go + gRPC + GORM | 50051 | User management microservice |
-| Products Service | Go + gRPC + GORM | 50052 | Product management microservice |
+| API Gateway | Go with Gorilla Mux | 8080 | HTTP REST API with dynamic service discovery |
+| Users Service | Go with gRPC and GORM | 50051 | User management microservice |
+| Products Service | Go with gRPC and GORM | 50052 | Product management microservice |
 | Consul | HashiCorp Consul | 8500 | Service discovery and health monitoring |
 | Users Database | PostgreSQL 13 | 5432 | Isolated user data persistence |
 | Products Database | PostgreSQL 13 | 5433 | Isolated product data persistence |
 
-## 🎯 My Approach
+## My Approach
 
-### 1. **Understanding the Problem**
-The main challenge was to fix the API Gateway to properly utilize Consul service discovery instead of hardcoded service addresses, and implement proper service communication for the composite endpoint that aggregates data from multiple services.
+### Understanding the Problem
 
-### 2. **Design Philosophy**
-- **Microservices First**: Each service maintains its own database and business logic
-- **Service Discovery**: Dynamic service location through Consul registry
-- **Protocol Buffers**: Type-safe inter-service communication
-- **Database Isolation**: Complete data separation between services
-- **Containerization**: Docker-based deployment for consistency
+The initial codebase had several issues that needed to be addressed. The API Gateway was using hardcoded service addresses like `users-service:50051`, which defeated the purpose of having a service discovery system. Additionally, the composite endpoint that was supposed to aggregate data from both services was not functioning properly. My task was to implement proper dynamic service discovery and fix the data aggregation logic.
 
-### 3. **Problem Solving Strategy**
-- Analyzed the existing codebase to understand the hardcoded connections
-- Implemented Consul client integration for dynamic service discovery
-- Fixed the composite endpoint to properly aggregate data from both services
-- Enhanced error handling and concurrent processing
+### Design Philosophy
 
-## 📋 Implementation Steps
+I approached this project with several key principles in mind. First, each microservice should be completely independent with its own database and business logic. Second, services should discover each other dynamically rather than through static configuration. Third, all inter-service communication should use Protocol Buffers for type safety and efficiency. Fourth, databases must remain isolated to maintain proper service boundaries. Finally, everything should be containerized to ensure deployment consistency.
+
+### Problem Solving Strategy
+
+I started by analyzing the existing codebase to understand where the hardcoded connections existed and what needed to be changed. Then I implemented the Consul client integration to enable dynamic service discovery. After that, I fixed the composite endpoint to properly aggregate data from both services using concurrent processing. Throughout the process, I enhanced error handling to make the system more robust and reliable.
+
+## Implementation Steps
 
 ### Step 1: Project Setup and Structure
+
+I began by creating the proper project structure to organize all components logically. This included separate directories for the protocol buffer definitions, API Gateway, and each microservice.
+
 ```bash
-# Created the project structure
 mkdir -p practical-three/{proto/gen,api-gateway,services/{users-service,products-service}}
 ```
 
 ### Step 2: Protocol Buffer Definitions
-- Defined `users.proto` and `products.proto` service contracts
-- Generated Go gRPC code using `protoc` compiler
-- Established strongly-typed communication interfaces
+
+I defined the service contracts using Protocol Buffers. The `users.proto` file specified the user service interface with methods for creating and retrieving users. Similarly, `products.proto` defined the product service interface. After defining these contracts, I generated the Go gRPC code using the `protoc` compiler, which created strongly-typed interfaces for all service communication.
 
 ### Step 3: Database Configuration
-- Configured separate PostgreSQL instances for each service
-- Implemented GORM models for Users and Products
-- Set up automatic schema migration
+
+Each service needed its own isolated database. I configured two separate PostgreSQL instances, one for users on port 5432 and another for products on port 5433. Using GORM as the ORM, I implemented models for Users and Products and set up automatic schema migration so the database tables would be created automatically when the services started.
 
 ### Step 4: Microservices Implementation
-**Users Service:**
-- Implemented gRPC server with CRUD operations
-- Database connectivity with connection pooling
-- Consul service registration with health checks
 
-**Products Service:**
-- Similar architecture to Users Service
-- Independent database and business logic
-- Automatic service discovery registration
+For the Users Service, I implemented a gRPC server that provides CRUD operations for user management. The service connects to its PostgreSQL database using connection pooling for efficiency. When the service starts, it automatically registers itself with Consul and sets up health checks so Consul knows if the service is running properly.
+
+The Products Service follows a similar architecture. It has its own gRPC server, independent database connection, and business logic. Like the Users Service, it automatically registers with Consul and maintains health check endpoints.
 
 ### Step 5: API Gateway Development
-**Key fixes implemented:**
-- **Dynamic Service Discovery**: Replaced hardcoded addresses with Consul queries
-- **Service Resolution**: Real-time service address lookup
-- **Error Handling**: Robust error management for service unavailability
-- **Data Aggregation**: Fixed composite endpoint for multi-service data
+
+This was the most critical part of the implementation. I made several key fixes to the API Gateway. First, I replaced all hardcoded service addresses with dynamic Consul queries. Now, when a request comes in, the gateway queries Consul to find where the service is currently running. Second, I implemented proper service resolution that looks up addresses in real-time. Third, I added robust error handling for cases when services might be unavailable. Finally, I fixed the composite endpoint to properly aggregate data from multiple services using concurrent gRPC calls.
 
 ### Step 6: Containerization
-- Created multi-stage Dockerfiles for each service
-- Configured docker-compose.yml for service orchestration
-- Implemented proper service dependencies and networking
+
+To make deployment easy and consistent, I created multi-stage Dockerfiles for each service. These Dockerfiles build small, efficient container images. I then configured docker-compose.yml to orchestrate all the services together, with proper dependencies so services start in the correct order and can communicate over the Docker network.
 
 ### Step 7: Testing and Validation
-- Comprehensive API testing with curl and Postman
-- Service health monitoring through Consul UI
-- End-to-end functionality verification
 
-## ✨ Key Features
+After implementation, I conducted comprehensive testing using curl commands and Postman to verify all API endpoints worked correctly. I monitored service health through the Consul UI to ensure services were registering properly and staying healthy. I validated the entire end-to-end functionality, from HTTP requests through the gateway, gRPC calls to services, and data persistence in the databases.
 
-### 🔄 Dynamic Service Discovery
-- API Gateway queries Consul on each request for real-time service location
-- Automatic service registration and deregistration
-- Health check monitoring and failover capabilities
+## Key Features
 
-### 🚀 gRPC Communication
-- High-performance binary protocol for inter-service communication
-- Protocol Buffer schema validation
-- Streaming support for future enhancements
+### Dynamic Service Discovery
 
-### 🛡️ Database Isolation
-- Each microservice maintains its own PostgreSQL database
-- Complete data separation and independence
-- Individual scaling capabilities
+The API Gateway now queries Consul on every request to find the current location of services. This means services can be moved, scaled, or restarted, and the gateway will always find them. Services automatically register and deregister themselves with Consul, and health checks monitor their availability for automatic failover if needed.
 
-### ⚡ Concurrent Processing
-- Parallel gRPC calls in composite endpoints
-- Goroutine-based concurrent data retrieval
-- Efficient resource utilization
+### gRPC Communication
 
-### 🐳 Full Containerization
-- Docker-based deployment with multi-stage builds
-- Container networking and service mesh
-- Easy scaling and deployment
+All inter-service communication uses gRPC, which provides high-performance binary protocol communication. Protocol Buffers ensure schema validation so services cannot send incorrectly formatted data to each other. The architecture also supports streaming for future enhancements if needed.
 
-## 🚧 Challenges Encountered
+### Database Isolation
+
+Each microservice maintains complete ownership of its data. The Users Service cannot directly access the Products database and vice versa. This complete data separation ensures true independence and allows each service to be scaled individually based on its own needs.
+
+### Concurrent Processing
+
+When the composite endpoint needs data from multiple services, it makes parallel gRPC calls using goroutines. This concurrent processing is much faster than making sequential calls and utilizes resources efficiently.
+
+### Full Containerization
+
+Everything runs in Docker containers with multi-stage builds that create small, efficient images. Container networking allows all services to communicate properly, and the entire stack can be deployed with a single docker-compose command.
+
+## Challenges Encountered
 
 ### Challenge 1: Service Discovery Integration
-**Problem**: The original API Gateway used hardcoded service addresses (`users-service:50051`), preventing dynamic scaling and proper service discovery.
 
-**Solution**: 
-- Implemented Consul client integration
-- Created dynamic service address resolution
-- Added error handling for service unavailability
+The biggest challenge was integrating proper service discovery. The original API Gateway used hardcoded addresses like `users-service:50051`, which meant the gateway would always try to connect to the same address regardless of where the service actually was. This prevented dynamic scaling and defeated the purpose of having Consul.
+
+To solve this, I implemented a Consul client in the API Gateway that queries the Consul API to discover service locations. I created a function called `discoverService` that takes a service name, queries Consul's health API for healthy instances of that service, and returns the current address and port. I also added comprehensive error handling for cases where services might not be available or Consul itself might be unreachable.
 
 ```go
 func discoverService(serviceName string) (string, error) {
@@ -179,34 +160,30 @@ func discoverService(serviceName string) (string, error) {
 ```
 
 ### Challenge 2: Composite Endpoint Implementation
-**Problem**: The `/api/purchases/user/{userId}/product/{productId}` endpoint wasn't properly aggregating data from both services.
 
-**Solution**:
-- Implemented concurrent gRPC calls using goroutines
-- Added proper error handling and synchronization
-- Created structured response format
+The composite endpoint at `/api/purchases/user/{userId}/product/{productId}` was supposed to aggregate data from both the Users and Products services, but it was not implemented correctly. The challenge was to make concurrent calls to both services and combine the results properly.
+
+I solved this by implementing goroutines to make concurrent gRPC calls. I used a WaitGroup to synchronize the goroutines and error variables to capture any errors that occurred during the calls. Once both calls completed, I combined the data into a structured response format. This approach is much faster than making sequential calls because both services are queried at the same time.
 
 ### Challenge 3: Container Networking
-**Problem**: Services couldn't communicate within Docker network due to hostname resolution issues.
 
-**Solution**:
-- Configured proper Docker networking in docker-compose
-- Used container names as hostnames
-- Implemented connection retry logic
+When I first tried to run the services in Docker, they could not communicate with each other. The problem was hostname resolution within the Docker network. Services were trying to connect using container names, but DNS resolution was not working correctly.
+
+I fixed this by properly configuring the Docker networking in docker-compose. I ensured all services were on the same network and used the correct container names as hostnames. I also implemented connection retry logic with exponential backoff, so if a service tries to connect before another service is ready, it will retry a few times before giving up.
 
 ### Challenge 4: Database Connection Management
-**Problem**: Intermittent database connection failures during container startup.
 
-**Solution**:
-- Added connection retry logic with exponential backoff
-- Implemented health checks in docker-compose
-- Added proper database initialization waiting
+During container startup, I encountered intermittent database connection failures. Sometimes the services would start before the PostgreSQL databases were ready to accept connections, causing crashes.
 
-## 🔧 Technical Solutions
+To solve this, I added connection retry logic with exponential backoff in the service code. If a database connection fails, the service waits a short time and tries again, gradually increasing the wait time. I also implemented health checks in docker-compose so dependent services wait until databases are healthy before starting. Additionally, I added proper database initialization waiting to ensure schema migrations complete successfully.
+
+## Technical Solutions
 
 ### Service Discovery Implementation
+
+The core of the dynamic service discovery is a function that queries Consul for service addresses. Every time the API Gateway needs to communicate with a microservice, it calls this function to get the current address.
+
 ```go
-// Dynamic service address resolution
 func getServiceAddress(serviceName string) (string, error) {
     consul, err := consulapi.NewClient(consulapi.DefaultConfig())
     if err != nil {
@@ -223,6 +200,9 @@ func getServiceAddress(serviceName string) (string, error) {
 ```
 
 ### Concurrent Data Aggregation
+
+For the composite endpoint, I implemented concurrent data fetching using goroutines and WaitGroups. This allows the gateway to query both services simultaneously and wait for both responses before returning the combined data to the client.
+
 ```go
 func getPurchaseDataHandler(w http.ResponseWriter, r *http.Request) {
     vars := mux.Vars(r)
@@ -234,27 +214,32 @@ func getPurchaseDataHandler(w http.ResponseWriter, r *http.Request) {
     var product *pb.Product
     var userErr, productErr error
 
-    // Concurrent gRPC calls
     wg.Add(2)
+    
     go func() {
         defer wg.Done()
+        // Discover and connect to users service
         // Fetch user data
     }()
+    
     go func() {
         defer wg.Done()
+        // Discover and connect to products service
         // Fetch product data
     }()
+    
     wg.Wait()
     
-    // Aggregate and return response
+    // Check for errors and aggregate response
 }
 ```
 
-## 🧪 Testing Results
+## Testing Results
 
-### Successful API Endpoints Tested:
+### User Management Endpoints
 
-#### User Management
+I successfully tested all user management operations. Creating a user involves sending a POST request with JSON data containing name and email. The API Gateway discovers the users service through Consul, converts the HTTP request to a gRPC call, and returns the created user with its assigned ID.
+
 ```bash
 # Create User
 curl -X POST -H "Content-Type: application/json" \
@@ -265,7 +250,10 @@ curl -X POST -H "Content-Type: application/json" \
 curl http://localhost:8080/api/users/1
 ```
 
-#### Product Management
+### Product Management Endpoints
+
+Product operations work similarly. Products can be created with a name and price, and retrieved by their ID. The data persists in the separate products database.
+
 ```bash
 # Create Product
 curl -X POST -H "Content-Type: application/json" \
@@ -276,306 +264,179 @@ curl -X POST -H "Content-Type: application/json" \
 curl http://localhost:8080/api/products/1
 ```
 
+### Data Aggregation Endpoint
 
-#### Data Aggregation
+The composite endpoint successfully aggregates data from both services. When queried, it concurrently fetches user and product data and returns them in a combined response.
+
 ```bash
 # Get Combined Purchase Data
 curl http://localhost:8080/api/purchases/user/1/product/1
 ```
 
 ### Testing Results Screenshot
+
 ![API Testing Results](assets/terminal.png)
 
+The screenshot demonstrates successful user creation and retrieval via dynamic service discovery, product management through Consul routing, and real-time data aggregation from multiple microservices.
 
-The screenshot demonstrates successful:
-- ✅ User creation and retrieval via dynamic service discovery
-- ✅ Product management through Consul routing
-- ✅ Real-time data aggregation from multiple microservices
+## Evidence Documentation
 
-## 📸 Evidence Documentation
+This section provides comprehensive visual proof of successful implementation and testing.
 
-This section provides comprehensive visual proof of the successful implementation and testing of the microservices system. Each screenshot demonstrates a critical aspect of the working system.
+### 1. Consul Service Discovery Dashboard
 
-### 1. 🔍 Consul Service Discovery Dashboard
 ![Consul Dashboard](assets/consul.png)
 
-**Evidence Shows:**
-- ✅ All services properly registered with Consul
-- ✅ Health status of `users-service` and `products-service` 
-- ✅ Service discovery mechanism working correctly
-- ✅ Dynamic service registration and health monitoring
-- ✅ Consul UI accessible at `http://localhost:8500`
+The Consul dashboard shows all services properly registered with the service discovery system. Both the users-service and products-service appear with their health status. The green indicators confirm that health checks are passing and the services are available. This proves that automatic service registration is working correctly and the service discovery infrastructure is operational.
 
-**What This Proves:**
-- Services are automatically registering themselves with Consul upon startup
-- Health checks are functioning and showing service availability
-- The service discovery infrastructure is operational
+### 2. Docker Compose System Running
 
-### 2. 🐳 Docker Compose System Running
 ![Docker Compose Running](assets/doc_compose.png)
 
-**Evidence Shows:**
-- ✅ All containers successfully built and started
-- ✅ No build errors or dependency issues
-- ✅ Services starting in correct order due to `depends_on` configuration
-- ✅ Container networking properly configured
-- ✅ All ports mapped correctly
+This screenshot shows the docker-compose build and startup process. All containers are successfully built without errors and started in the correct order due to dependency configuration. The log output confirms that services are initializing properly and connecting to their databases. This demonstrates that container orchestration is working correctly.
 
-**What This Proves:**
-- The entire microservices stack can be deployed with a single command
-- Container orchestration is working as designed
-- All services are communicating within the Docker network
+### 3. Docker Containers Active Status
 
-### 3. 📦 Docker Containers Active Status
 ![Docker Containers Active](assets/docker.png)
 
-**Evidence Shows:**
-- ✅ All 6 containers running successfully:
-  - `consul` - Service discovery
-  - `users-db` - PostgreSQL database for users
-  - `products-db` - PostgreSQL database for products  
-  - `users-service` - User management microservice
-  - `products-service` - Product management microservice
-  - `api-gateway` - HTTP REST API gateway
-- ✅ Proper port mappings and container health
-- ✅ No crashed or exited containers
+The Docker desktop view shows all six containers running successfully. The Consul service provides service discovery, two PostgreSQL databases maintain separate data stores for users and products, the two microservices handle business logic, and the API Gateway routes requests. All containers show healthy status with proper port mappings. This proves complete system deployment was successful.
 
-**What This Proves:**
-- Complete system deployment successful
-- All components are healthy and operational
-- Database isolation working with separate PostgreSQL instances
+### 4. Postman API Verification
 
-### 4. 🧪 Postman API Verification
 ![Postman Testing](assets/postman.png)
 
-**Evidence Shows:**
-- ✅ Successful API endpoint testing through Postman
-- ✅ HTTP status codes (200, 201) indicating successful operations
-- ✅ Proper JSON request and response formatting
-- ✅ All CRUD operations working correctly:
-  - User creation and retrieval
-  - Product creation and retrieval
-  - Composite data aggregation endpoint
-- ✅ Service discovery routing requests correctly
+Postman testing validates all API endpoints through an external tool. The screenshots show successful HTTP requests with proper status codes (200 and 201) indicating successful operations. All CRUD operations work correctly including user creation and retrieval, product creation and retrieval, and the composite data aggregation endpoint. This proves the API Gateway is successfully translating HTTP requests to gRPC calls and service discovery is routing requests correctly.
 
-**What This Proves:**
-- API Gateway successfully translating HTTP to gRPC calls
-- Dynamic service discovery working in practice
-- End-to-end functionality verified through external testing tool
+### 5. Terminal User Creation and Retrieval
 
-### 5. 💻 Terminal User Creation and Retrieval
 ![API Testing Results](assets/terminal.png)
 
-**Evidence Shows:**
-- ✅ `curl` commands creating new users successfully
-- ✅ User retrieval working with proper JSON responses
-- ✅ Database persistence verified through consecutive operations
-- ✅ gRPC communication between gateway and users-service
-- ✅ PostgreSQL database integration working correctly
+Terminal-based curl commands demonstrate end-to-end functionality. The commands create new users and retrieve them successfully with proper JSON responses. Database persistence is verified through consecutive operations. The successful responses prove that gRPC communication between the gateway and services is working, PostgreSQL database integration is functioning correctly, and data persists properly across requests.
 
-**Command Examples Tested:**
-```bash
-# Create User
-curl -X POST -H "Content-Type: application/json" \
-     -d '{"name": "Jane Doe", "email": "jane.doe@example.com"}' \
-     http://localhost:8080/api/users
+### Evidence Summary
 
-# Retrieve User  
-curl http://localhost:8080/api/users/1
-```
-
-**What This Proves:**
-- Complete end-to-end functionality from HTTP request to database storage
-- Service discovery enabling proper request routing
-- Data persistence working correctly
-- Terminal-based testing validates the implementation
-
-### 🎯 Evidence Summary
-
-The screenshots collectively demonstrate:
+The screenshots collectively demonstrate that all components are working together correctly:
 
 | Component | Evidence | Status |
 |-----------|----------|--------|
-| Service Discovery | Consul dashboard showing registered services | ✅ Working |
-| Container Orchestration | Docker compose and container status | ✅ Working |
-| API Gateway | Postman successful API calls | ✅ Working |
-| Database Integration | Terminal user CRUD operations | ✅ Working |
-| End-to-End Flow | All components working together | ✅ Working |
+| Service Discovery | Consul dashboard showing registered services | Working |
+| Container Orchestration | Docker compose and container status | Working |
+| API Gateway | Postman successful API calls | Working |
+| Database Integration | Terminal user CRUD operations | Working |
+| End-to-End Flow | All components working together | Working |
 
-**Implementation Verification Checklist:**
-- [x] Service registration with Consul
-- [x] Dynamic service discovery in API Gateway  
-- [x] gRPC inter-service communication
-- [x] Database isolation and persistence
-- [x] HTTP to gRPC translation
-- [x] Concurrent data aggregation
-- [x] Container networking and deployment
-- [x] Health monitoring and observability
+All practical requirements have been successfully implemented and the microservices system is fully operational.
 
-This comprehensive evidence documentation proves that all practical requirements have been successfully implemented and the microservices system is fully operational.
-
-## 📁 Project Structure
-
-```
-practical-three/
-├── 🌐 api-gateway/                 # HTTP REST API Gateway
-│   ├── main.go                     # Dynamic service discovery logic
-│   ├── Dockerfile                  # Multi-stage build configuration
-│   ├── go.mod                      # Go module dependencies
-│   └── go.sum                      # Dependency checksums
-├── 🔧 services/
-│   ├── 👥 users-service/           # User management microservice
-│   │   ├── main.go                 # gRPC server with database integration
-│   │   ├── Dockerfile              # Service containerization
-│   │   ├── go.mod                  # Service-specific dependencies
-│   │   └── go.sum
-│   └── 🛍️ products-service/        # Product management microservice
-│       ├── main.go                 # gRPC server with database integration
-│       ├── Dockerfile              # Service containerization
-│       ├── go.mod                  # Service-specific dependencies
-│       └── go.sum
-├── 📡 proto/                       # Protocol Buffer definitions
-│   ├── users.proto                 # User service contract
-│   ├── products.proto              # Product service contract
-│   └── gen/proto/                  # Generated Go code
-│       ├── go.mod                  # Proto module
-│       ├── users.pb.go             # User protobuf bindings
-│       ├── users_grpc.pb.go        # User gRPC client/server
-│       ├── products.pb.go          # Product protobuf bindings
-│       └── products_grpc.pb.go     # Product gRPC client/server
-├── 🐳 docker-compose.yml           # Multi-service orchestration
-├── 📋 buf.yaml                     # Buf configuration
-├── ⚙️ buf.gen.yaml                 # Code generation settings
-├── 🔧 Makefile                     # Build automation
-└── 📖 README.md                    # Project documentation
-```
-
-## 📚 API Documentation
+## API Documentation
 
 ### Base URL
 ```
 http://localhost:8080
 ```
 
-### Endpoints
+### User Management Endpoints
 
-#### User Management
 | Method | Endpoint | Description | Request Body |
 |--------|----------|-------------|--------------|
 | POST | `/api/users` | Create new user | `{"name": "string", "email": "string"}` |
 | GET | `/api/users/{id}` | Get user by ID | None |
 
-#### Product Management
+### Product Management Endpoints
+
 | Method | Endpoint | Description | Request Body |
 |--------|----------|-------------|--------------|
 | POST | `/api/products` | Create new product | `{"name": "string", "price": number}` |
 | GET | `/api/products/{id}` | Get product by ID | None |
 
-#### Data Aggregation
+### Data Aggregation Endpoint
+
 | Method | Endpoint | Description | Response |
 |--------|----------|-------------|----------|
 | GET | `/api/purchases/user/{userId}/product/{productId}` | Get combined user and product data | `{"user": {...}, "product": {...}}` |
 
-## 🚀 Setup Instructions
+## What I Learned
 
-### Prerequisites
-- Docker and Docker Compose
-- Go 1.18+ (for local development)
-- Protocol Buffers Compiler
-- Buf CLI (for proto generation)
+### Understanding Microservices Architecture
 
-### Quick Start
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/Rynorbu/AS2025_WEB303_02230297_Practical3.git
-   cd AS2025_WEB303_02230297_Practical3
-   ```
+Through this practical, I gained a deep understanding of how microservices actually work in practice. Before this, I had only theoretical knowledge of microservices patterns. Now I understand why service isolation is so important and how it allows teams to work independently. I learned that each service should own its data completely, and that sharing databases between services breaks the microservices pattern and creates tight coupling.
 
-2. **Generate Protocol Buffers (if needed):**
-   ```bash
-   buf generate
-   ```
+### Service Discovery Patterns
 
-3. **Build and run the entire stack:**
-   ```bash
-   docker-compose up --build
-   ```
+One of the most valuable lessons was learning about service discovery. I now understand why hardcoding service addresses is problematic in distributed systems. Services can move, scale up or down, or be replaced, and having a dynamic service registry makes this possible. Consul taught me how health checks work and how systems can automatically route traffic away from unhealthy services. This is crucial for building resilient systems that can handle failures gracefully.
 
-4. **Verify services are running:**
-   ```bash
-   docker-compose ps
-   ```
+### gRPC and Protocol Buffers
 
-5. **Monitor service health:**
-   Visit [http://localhost:8500](http://localhost:8500) for Consul UI
+Working with gRPC gave me practical experience with binary protocols and why they are more efficient than JSON for inter-service communication. Protocol Buffers force you to define explicit schemas, which I initially found restrictive, but I came to appreciate how this prevents many bugs that can occur with loosely typed JSON APIs. The generated code provides type safety that catches errors at compile time rather than runtime.
 
-## 🎯 Learning Outcomes
+### Database Management in Distributed Systems
 
-### Learning Outcome 2: gRPC and Protocol Buffers ✅
-- **Achievement**: Successfully implemented efficient inter-service communication using gRPC
-- **Evidence**: Protocol Buffer definitions, generated Go code, and bi-directional service communication
-- **Skills Gained**: Binary serialization, type-safe APIs, performance optimization
+Managing multiple databases taught me about data consistency challenges in distributed systems. Each service has its own database, which means you cannot use foreign keys across services. This forced me to think differently about data relationships and transactions. I learned that maintaining data consistency across services requires different patterns than traditional monolithic applications.
 
-### Learning Outcome 4: Data Persistence and State Management ✅
-- **Achievement**: Implemented isolated database architecture with GORM integration
-- **Evidence**: Separate PostgreSQL instances, automatic schema migration, and CRUD operations
-- **Skills Gained**: Database isolation patterns, ORM usage, connection management
+### Container Orchestration
 
-### Learning Outcome 8: Observability Solutions ✅
-- **Achievement**: Integrated Consul for service discovery and health monitoring
-- **Evidence**: Service registration, health checks, and real-time service status monitoring
-- **Skills Gained**: Service mesh patterns, health monitoring, distributed system observability
+Docker and docker-compose became much clearer through this hands-on experience. I learned how to properly configure networking between containers, manage startup order with dependencies, and implement health checks. Understanding how to build efficient multi-stage Docker images was particularly valuable for creating production-ready containers.
 
-## 🔍 Advanced Features Implemented
+### Concurrent Programming in Go
 
-### Dynamic Service Discovery Flow
-1. **Request Reception**: API Gateway receives HTTP request
-2. **Consul Query**: Gateway queries Consul for service location
-3. **Address Resolution**: Consul returns current service address (container:port)
-4. **gRPC Connection**: Gateway establishes connection to discovered service
-5. **Business Logic**: Service processes request with database interaction
-6. **Response Aggregation**: Gateway combines multiple service responses (if needed)
-7. **Client Response**: Final result returned to client
+Implementing the concurrent data aggregation endpoint taught me practical patterns for using goroutines and WaitGroups. I learned how to coordinate multiple asynchronous operations and handle errors properly in concurrent code. This experience will be valuable for any future work involving concurrent programming.
 
-### Database Architecture Benefits
-- **Complete Isolation**: Each microservice owns its data
-- **Independent Scaling**: Services can scale based on individual needs
-- **Fault Tolerance**: Database failure in one service doesn't affect others
-- **Technology Flexibility**: Different services can use different database technologies
+### Error Handling and Resilience
 
-## 🏁 Conclusion
+Building a distributed system taught me that failures are normal and must be designed for. Services will be temporarily unavailable, networks will have latency, and databases will occasionally be slow. Implementing retry logic, proper error handling, and graceful degradation showed me how to build systems that continue working even when components fail.
 
-This practical successfully demonstrates a production-ready microservices architecture with the following key achievements:
+### Debugging Distributed Systems
 
-### ✅ **Technical Excellence**
-- **Service Discovery**: Fully functional Consul integration replacing hardcoded connections
-- **gRPC Communication**: High-performance inter-service communication
-- **Database Isolation**: Complete separation of concerns and data ownership
-- **Containerization**: Docker-based deployment with proper networking
+Debugging issues across multiple services was challenging but educational. I learned to use logs effectively, understand how to trace requests across service boundaries, and use tools like the Consul UI to understand system state. This experience taught me the importance of observability in distributed systems.
 
-### ✅ **Problem Resolution**
-- **Fixed API Gateway**: Implemented dynamic service discovery
-- **Composite Endpoint**: Successfully aggregating data from multiple services
-- **Error Handling**: Robust error management and recovery
-- **Performance**: Concurrent processing for efficient resource utilization
+## Objectives Achieved
 
-### ✅ **Best Practices**
-- **Clean Architecture**: Separation of concerns and single responsibility
-- **Type Safety**: Protocol Buffers for contract-first development
-- **Observability**: Health monitoring and service registration
-- **Scalability**: Horizontal scaling capabilities through service discovery
+### Learning Outcome 2: gRPC and Protocol Buffers
 
-### 🚀 **Future Enhancements**
-- Load balancing across service instances
-- Circuit breaker pattern for fault tolerance
-- Distributed tracing with tools like Jaeger
-- API rate limiting and authentication
-- Kubernetes deployment manifests
+I successfully implemented efficient inter-service communication using gRPC and Protocol Buffers. The evidence of this achievement includes the protocol buffer definitions for both users and products services, the generated Go code that provides type-safe APIs, and the working bi-directional communication between services. Through this implementation, I gained practical skills in binary serialization, creating type-safe APIs, and optimizing performance in distributed systems.
 
-The implementation successfully addresses all practical requirements while demonstrating modern microservices patterns and cloud-native architecture principles. The system is production-ready and showcases enterprise-level distributed system design.
+### Learning Outcome 4: Data Persistence and State Management
+
+I implemented a proper isolated database architecture using GORM for object-relational mapping. Each microservice maintains its own PostgreSQL database instance, ensuring complete data separation and service independence. The implementation includes automatic schema migration, complete CRUD operations, and proper connection management with pooling. This demonstrates solid understanding of database isolation patterns, ORM usage in Go, and managing database connections in containerized environments.
+
+### Learning Outcome 8: Observability Solutions
+
+I successfully integrated HashiCorp Consul for comprehensive service discovery and health monitoring. The implementation includes automatic service registration when services start, continuous health checks to monitor service availability, and real-time service status monitoring through the Consul UI. This work demonstrates understanding of service mesh patterns, implementing health monitoring in distributed systems, and building observable distributed systems.
+
+### Additional Achievements
+
+Beyond the specific learning outcomes, I implemented several advanced features. The dynamic service discovery flow ensures that the API Gateway can always find services regardless of where they are running. The database architecture provides complete isolation with independent scaling capabilities. Concurrent processing in the composite endpoint optimizes performance by making parallel requests. The containerized deployment with proper networking makes the entire system easy to deploy and scale.
+
+## Conclusion
+
+This practical successfully demonstrates a production-ready microservices architecture with full implementation of modern cloud-native patterns. The project achieves all technical objectives and provides a solid foundation for understanding distributed systems.
+
+### Technical Accomplishments
+
+The implementation successfully addresses all the key requirements. The service discovery system works correctly with the API Gateway querying Consul dynamically instead of using hardcoded addresses. This means services can be scaled, moved, or replaced without requiring configuration changes. The gRPC communication provides high-performance inter-service communication with type safety guaranteed by Protocol Buffers. Database isolation ensures each service maintains complete ownership of its data, enabling independent scaling and evolution.
+
+The containerization approach makes deployment consistent and repeatable. The entire system can be started with a single docker-compose command, and all dependencies are handled automatically. This demonstrates understanding of modern deployment practices and infrastructure as code principles.
+
+### Problem Solving Success
+
+The main objective of fixing the API Gateway was achieved successfully. The gateway now properly discovers services through Consul, handles service unavailability gracefully with appropriate error messages, and aggregates data from multiple services efficiently using concurrent processing. The composite endpoint demonstrates the ability to coordinate multiple services to provide combined functionality, which is a common requirement in microservices architectures.
+
+### Practical Application
+
+This practical provided hands-on experience with technologies and patterns used in real-world production systems. Service discovery, gRPC communication, containerization, and database isolation are all common in modern cloud applications. The skills developed here are directly applicable to professional software development.
+
+### Areas for Future Enhancement
+
+While the current implementation is functional and meets all requirements, there are several areas that could be enhanced in a production system. Implementing authentication and authorization would add security. Adding distributed tracing would improve debugging capabilities. Implementing circuit breakers would make the system more resilient to cascading failures. Adding metrics and monitoring would provide better observability.
+
+### Final Reflection
+
+This practical was challenging but highly educational. It required understanding multiple technologies and how they work together, debugging issues across distributed components, and implementing robust error handling. The experience of building a working microservices system from the ground up has significantly improved my understanding of distributed systems architecture and modern cloud-native application development.
+
+The most valuable takeaway is understanding that microservices architecture is not just about splitting code into separate services, but about designing for independence, resilience, and scalability. Each decision about service boundaries, communication protocols, and data management has implications for how the system can evolve and scale in the future.
 
 ---
 
 **Student**: Ranjung Yeshi Norbu  
 **Module**: WEB303 Microservices & Serverless Applications  
-**Practical**: 3 - Full-Stack Microservices with gRPC, Databases, and Service Discovery
+**Practical**: 3 - Full-Stack Microservices with gRPC, Databases, and Service Discovery  
+**Date**: November 2025
